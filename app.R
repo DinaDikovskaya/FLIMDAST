@@ -1032,6 +1032,9 @@ server <- function(input, output, session) {
   
   #generating main storage file with pixel intensities and fluorescence lifetimes for all data
   MainData<-reactive({
+    withProgress(message = "extracting pixel values",value = 0, 
+                 style = getShinyOption("progress.style", default = "notification"),
+                 {  
     DT<-setNames(data.frame(matrix(ncol = 8, nrow = 0)), c("t1","e","r1","r2","cond","cell","timepoint","ref")) 
     
     # using file locations from the Main Table, to read and combine all pixel values
@@ -1043,7 +1046,9 @@ server <- function(input, output, session) {
       Measurement$timepoint=valuesTogether$df[i,"Time_Point"]
       Measurement$ref=valuesTogether$df[i,"Reference"]
       DT<-rbind(DT,Measurement)
+      incProgress(1/nrow(valuesTogether$df), detail = paste(""))
     }
+                 })
     return(DT)
   })
   
@@ -1251,186 +1256,223 @@ server <- function(input, output, session) {
   output$DownloadAllPlots<-renderUI({ 
     req(length_of_main_table()>0)
     req(number_of_designs()>0)
-    downloadButton("downloadPlot"," Plot all data",class = "btn btn-primary")
+    downloadButton("download_Plot"," Plot all data",class = "btn btn-primary")
   })
   
   output$DownloadAllPlots1<-renderUI({ 
     req(length_of_main_table()>0)
     req(number_of_designs()>0)
-    downloadButton("downloadPlot1"," Plot all data",class = "btn btn-primary")
+    downloadButton("download_Plot1"," Plot all data",class = "btn btn-primary")
   })
   
+  #making table that combines measurements from Main Table and plot settings  
+  ComboPlotTable<-reactive({
+    req(length_of_main_table()>0)
+    req(number_of_designs()>0)
+   
+     withProgress(message = "making data table",value = 0, 
+                 style = getShinyOption("progress.style", default = "notification"),
+                 {  
+    
+    together_short<-valuesTogether$df[-c(5,6,7,9)] 
+    nonref_table<-filter(together_short, Reference =="no")
+    PlotSetTable<-filter(valuesSelected$SettingsTable,type =="Plot")
+    
+    ext_table<-nonref_table
+    vec<-c(1:nrow(ext_table))
+    
+    Ref_TimePoint<-lapply(vec,function(x){together_short[ref_row(x,nonref_table,together_short),"Time_Point"]})
+    Ref_region_1_name<-lapply(vec,function(x){together_short[ref_row(x,nonref_table,together_short),"region_1_name"]})
+    Ref_region_2_name<-lapply(vec,function(x){together_short[ref_row(x,nonref_table,together_short),"region_2_name"]})
+    ext_table$Ref_TimePoint<-unlist(Ref_TimePoint[])
+    ext_table$Ref_region_1_name<-unlist(Ref_region_1_name[])
+    ext_table$Ref_region_2_name<-unlist(Ref_region_2_name[])  
+    ext_table$PlotNr<-nrow(PlotSetTable) 
+    
+    ext_table_wPlots<-ext_table %>%  
+      slice(rep(seq_len(n()), PlotNr)) %>% 
+      select(-PlotNr)
+    
+    ext_table_wPlots1<-cbind(ext_table_wPlots,PlotSetTable)
+                 })
+    
+    return(ext_table_wPlots1)
+  })
   
   # plotting all data
   AllPlots<-reactive({
-    withProgress(message = "plotting",value = 0, 
+    req(nrow(ComboPlotTable())>0)
+    req(nrow(MainData())>0)
+    
+    withProgress(message = "making plots",value = 0, 
                  style = getShinyOption("progress.style", default = "notification"),
                  {  
-                   plotlist<-list() 
-                   nonref_table<-filter(valuesTogether$df,Reference=="no")
-                   PlotsSetTable<-filter(valuesSelected$SettingsTable, type == "Plot")
-                   NrPlots<-number_of_designs()
-                   PlotsTotal<-(nrow(nonref_table))*number_of_designs()
-                   plotlist[[1]]<-PlotsTotal
-                   nn<-1
                    
-                   CondList<-unlist(unique(valuesTogether$df$Condition))
-                   
-                   Second_label<-NA
-                   Third_label<-NA
-                   Forth_label<-NA
-                   SecondColor<-NA
-                   ThirdColor<-NA
-                   ForthColor<-NA
-                   
-                   for(cnd in CondList) {
-                     
-                     CellList<-unlist(unique(valuesTogether$df%>%filter(Condition==cnd)%>%select(Cell)))
-                     
-                     for(cl in CellList) {
-                       
-                       #obtaining reference and non-reference time points
-                       RefTimePoint<-unlist(valuesTogether$df%>%filter(Condition==cnd,Cell==cl,Reference=="yes")%>%select(Time_Point))
-                       NonrefTimePoint<-unlist(valuesTogether$df%>%filter(Condition==cnd,Cell==cl,Reference=="no")%>%select(Time_Point))
-                       
-                       #retrieving information from settings file and making reference dataset 
-                       for (P in 1:NrPlots) {
-                         SecondTimePoint<-RefTimePoint
-                         Index1<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(FirstDatasetChoice)))
-                         Index2<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(SecondDataset)))
-                         Data2<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(SecondDatasetChoice)))
-                         Index3<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(ThirdDataset)))
-                         Data3<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(ThirdDatasetChoice)))
-                         Index4<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(ForthDataset)))
-                         Data4<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(ForthDatasetChoice)))
-                         Xmin<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(Xmin)))
-                         Xmax<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(Xmax)))
-                         Ymin<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(Ymin)))
-                         Ymax<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(Ymax)))
-                         FirstColor<-unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(FirstDatasetColor))
-                         
-                         data_bl<-subset(MainData(),cond==cnd&cell==cl&timepoint==RefTimePoint&MainData()[,Index1]>0)
-                         
-                         DataRow<-which(valuesTogether$df$Condition==cnd&valuesTogether$df$Cell==cl&valuesTogether$df$Time_Point==SecondTimePoint)  
-                         trans<-c("entire cell",valuesTogether$df[DataRow,"region_1_name"],valuesTogether$df[DataRow,"region_2_name"])
-                         
-                         area<-trans[Index1-1]
-                         
-                         First_label<-paste0(RefTimePoint," ",area," (ref)")
-                         
-                         #making measurement dataset and assembling plots
-                         for (currTP in NonrefTimePoint) { 
-                           
-                           DataRow1<-which(valuesTogether$df$Condition==cnd&valuesTogether$df$Cell==cl&valuesTogether$df$Time_Point==SecondTimePoint)  
-                           trans1<-c("entire cell",valuesTogether$df[DataRow1,"region_1_name"],valuesTogether$df[DataRow1,"region_2_name"])
-                           
-                           
-                           re<-ggplot(data_bl, aes(x = e, y = t1,color="black")) +
-                             geom_point() +
-                             theme_classic() +
-                             labs(x="photon number",
-                                  y="tm, ps") +
-                             theme(text =element_text(size = 16)) +
-                             theme(legend.title = element_blank(),
-                                   legend.justification = c(1, 1), 
-                                   legend.position="bottom",
-                                   legend.direction="vertical")+
-                             ylim(Ymin,Ymax) +
-                             xlim(Xmin,Xmax) 
-                           
-                           if (!is.na(Index2)){
-                             SecondColor<-unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(SecondDatasetColor))
-                             SecondTimePoint<-ifelse(Data2 == 1,RefTimePoint,currTP)
-                             
-                             overlaydata1<-subset(MainData(),cond==cnd&cell==cl&timepoint==SecondTimePoint&MainData()[,Index2]>0)
-                             overlay1<-geom_point(data=overlaydata1,aes(color = "blue"),alpha=0.4)
-                             
-                             area1<-trans1[Index2-1]
-                             
-                             Second_label<-paste0(SecondTimePoint," ",area1)
-                             
-                             re<-re+overlay1
-                             
-                             if (!is.na(Index3)){
-                               ThirdColor<-unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(ThirdDatasetColor))
-                               SecondTimePoint<-ifelse(Data3 == 1,RefTimePoint,currTP)
-                               overlaydata2<-subset(MainData(),cond==cnd&cell==cl&timepoint==SecondTimePoint&MainData()[,Index3]>0)
-                               overlay2<-geom_point(data=overlaydata2,aes(color = "red"),alpha=0.4)
-                               
-                               area2<-trans1[Index3-1]
-                               
-                               Third_label<-paste0(SecondTimePoint," ",area2)
-                               
-                               re<-re+overlay2
-                               
-                               if (!is.na(Index4)){
-                                 ForthColor<-unlist(valuesSelected$SettingsTable%>%filter(type=="Plot",Nr==P)%>%select(ForthDatasetColor))
-                                 SecondTimePoint<-ifelse(Data4 == 1,RefTimePoint,currTP)
-                                 overlaydata3<-subset(MainData(),cond==cnd&cell==cl&timepoint==SecondTimePoint&MainData()[,Index4]>0)
-                                 overlay3<-geom_point(data=overlaydata3,aes(color = "yellow"),alpha=0.4)
-                                 area3<-trans1[Index4-1]
-                                 
-                                 Forth_label<-paste0(SecondTimePoint," ",area3)
-                                 
-                                 re<-re+overlay3
-                               }
-                             }
-                           }
-                           
-                           re<-re + 
-                             scale_colour_manual(values = c("black"= FirstColor[[1]], "blue" = SecondColor[[1]],"red" = ThirdColor[[1]],"yellow" = ForthColor[[1]]),
-                                                 labels = c("black"= First_label,"blue" = Second_label,"red" = Third_label,"yellow" = Forth_label))+
-                             
-                             guides(fill = guide_legend(override.aes = list(size = 2,alpha=1)))+
-                             theme(legend.margin = margin(-0.5,0,0,0, unit="cm"))
-                           
-                           #exporting plots
-                           TitleText2<-ifelse(2%in%c(Data2,Data3,Data4),
-                                              paste0("\n with ",RefTimePoint," (ref) "),"")
-                           TitleText<-paste0(cnd," cell ",cl," ",SecondTimePoint,TitleText2)
-                           re<-re + ggtitle(TitleText) +
-                             theme(plot.title = element_text(hjust = 0.5))
-                           nn<-nn+1
-                           plotlist[[nn]]<-re
-                           incProgress(1/PlotsTotal, detail = paste("main table"))
-                         }
-                       }
-                     }
-                   }
-                   
+    PlotsCount<-c(1:nrow(ComboPlotTable()))
+    
+    Second_label<-NA
+    Third_label<-NA
+    Forth_label<-NA
+    SecondColor<-NA
+    ThirdColor<-NA
+    ForthColor<-NA
+    
+   content<-function(x) {
+     
+                data_bl<-MainDataSelectionR(x,ComboPlotTable,MainData)
+                data_gr<-MainDataSelectionNR(x,ComboPlotTable,MainData) 
+                area<-c("entire cell",ComboPlotTable()[x,"Ref_region_1_name"],ComboPlotTable()[x,"Ref_region_2_name"])
+                area1<-c("entire cell",ComboPlotTable()[x,"region_1_name"],ComboPlotTable()[x,"region_2_name"])
+                
+                Index1<-as.numeric(ComboPlotTable()[x,"FirstDatasetChoice"])
+                first_data<-AreaSel(data_bl,Index1)
+                First_label<-paste0(ComboPlotTable()[x,"Ref_TimePoint"]," ",area[Index1-1]," (ref)")
+                FirstColor<-as.character(ComboPlotTable()[x,"FirstDatasetColor"])
+                Xmin<-as.numeric(ComboPlotTable()[x,"Xmin"])
+                Xmax<-as.numeric(ComboPlotTable()[x,"Xmax"])
+                Ymin<-as.numeric(ComboPlotTable()[x,"Ymin"])
+                Ymax<-as.numeric(ComboPlotTable()[x,"Ymax"])
+                
+                Data2<-as.numeric(ComboPlotTable()[x,"SecondDatasetChoice"])
+                Index2<-as.numeric(ComboPlotTable()[x,"SecondDataset"])
+                Data3<-as.numeric(ComboPlotTable()[x,"ThirdDatasetChoice"])
+                Index3<-as.numeric(ComboPlotTable()[x,"ThirdDataset"])
+                Data4<-as.numeric(ComboPlotTable()[x,"ForthDatasetChoice"])
+                Index4<-as.numeric(ComboPlotTable()[x,"ForthDataset"])
+                
+                SecondTimePoint<-ComboPlotTable()[x,"Ref_TimePoint"]
+
+      re<-ggplot(first_data, aes(x = e, y = t1, color = "black")) +
+        geom_point() +
+        theme_classic() +
+        labs(x="photon number",
+             y="tm, ps") +
+        theme(text =element_text(size = 16)) +
+        theme(legend.title = element_blank(),
+              legend.justification = c(1, 1), 
+              legend.position="bottom",
+              legend.direction="vertical")+
+        ylim(Ymin,Ymax) +
+        xlim(Xmin,Xmax) 
+      
+      if (!is.na(Index2)){
+         SecondColor<-as.character(ComboPlotTable()[x,"SecondDatasetColor"])
+         if (Data2 == 1) {
+           overlaydata1<-AreaSel(data_bl,Index2)
+           SecondTimePoint<-ComboPlotTable()[x,"Ref_TimePoint"]
+           ar<-area[Index2-1]
+         } else {
+           overlaydata1<-AreaSel(data_gr,Index2)
+           SecondTimePoint<-ComboPlotTable()[x,"Time_Point"]
+           ar<-area1[Index2-1]
+         }
+         Second_label<-paste0(SecondTimePoint," ",ar)
+         overlay1<-geom_point(data=overlaydata1,aes(color = "blue"),alpha=0.4)
+         re<-re+overlay1
+        
+        if (!is.na(Index3)){
+          ThirdColor<-as.character(ComboPlotTable()[x,"ThirdDatasetColor"])
+          if (Data3 == 1) {
+            overlaydata2<-AreaSel(data_bl,Index3)
+            SecondTimePoint<-ComboPlotTable()[x,"Ref_TimePoint"]
+            ar<-area[Index3-1]
+          } else {
+            overlaydata2<-AreaSel(data_gr,Index3)
+            SecondTimePoint<-ComboPlotTable()[x,"Time_Point"]
+            ar<-area1[Index3-1]
+          }
+          Third_label<-paste0(SecondTimePoint," ",ar)
+          overlay2<-geom_point(data=overlaydata2,aes(color = "red"),alpha=0.4)
+          re<-re+overlay2
+          
+          if (!is.na(Index4)){
+            ForthColor<-as.character(ComboPlotTable()[x,"ForthDatasetColor"])
+            if (Data4 == 1) {
+              overlaydata3<-AreaSel(data_bl,Index4)
+              SecondTimePoint<-ComboPlotTable()[x,"Ref_TimePoint"]
+              ar<-area[Index4-1]
+            } else {
+              overlaydata3<-AreaSel(data_gr,Index4)
+              SecondTimePoint<-ComboPlotTable()[x,"Time_Point"]
+              ar<-area1[Index4-1]
+            }
+            Forth_label<-paste0(SecondTimePoint," ",ar)
+            overlay3<-geom_point(data=overlaydata3,aes(color = "yellow"),alpha=0.4)
+            re<-re+overlay3
+          
+            }
+        }
+      }
+      TitleText2<-ifelse(2%in%c(Data2,Data3,Data4),paste0("\n with ",ComboPlotTable()[x,"Ref_TimePoint"]," (ref) ",Data2,Data3,Data3),"")
+      TitleText<-paste0(ComboPlotTable()[x,"Condition"]," cell ",ComboPlotTable()[x,"Cell"]," ",SecondTimePoint," ",TitleText2)
+      
+      re<-re + scale_colour_manual(values = c("black" = FirstColor, "blue" = SecondColor,"red" = ThirdColor,"yellow" = ForthColor ),
+                          labels = c("black" = First_label, "blue" = Second_label,"red" = Third_label, "yellow" = Forth_label))+
+        guides(fill = guide_legend(override.aes = list(size = 2,alpha=1)))+
+        theme(legend.margin = margin(-0.5,0,0,0, unit="cm"))+
+        ggtitle(TitleText) +
+        theme(plot.title = element_text(hjust = 0.5))
+      
+      incProgress(1/PlotsCount, detail = paste(""))
+      
+    return(re)
+   }
+   
+    plotvector<-lapply(PlotsCount,content)
+    
                  }) 
-    return(plotlist)
-  }) 
+    return(plotvector)
   
-  #downloading plots for the entire experiment from the Plot tab  
-  output$downloadPlot<-downloadHandler(
+  })
+  
+  
+  #downloading plots for the entire experiment from the Plot tab   
+  output$download_Plot<-downloadHandler(
     filename = function(){
       paste("FLIMDASTplots","pdf",sep = ".")
     },
     content = function(file) {
       
+      withProgress(message = "printing",value = 0, 
+                   style = getShinyOption("progress.style", default = "notification"),
+                   {  
+       
       pdf(file) 
-      for (i in 1:AllPlots()[[1]]){
-        plot(AllPlots()[[i+1]])
+ 
+      for (i in 1:length(AllPlots())){
+        plot(AllPlots()[[i]])
+        incProgress(1/length(AllPlots()), detail = paste(""))
       }
+                             
       dev.off()
-      # dev.set(curr) 
+      
+                   }
+      )
     }
   )
   
   #downloading plots for the entire experiment from the Main Table tab   
-  output$downloadPlot1<-downloadHandler(
+  output$download_Plot1<-downloadHandler(
     filename = function(){
       paste("FLIMDASTplots","pdf",sep = ".")
     },
     content = function(file) {
       
+      withProgress(message = "printing",value = 0, 
+                   style = getShinyOption("progress.style", default = "notification"),
+                   {  
+                     
       pdf(file) 
-      for (i in 1:AllPlots()[[1]]){
-        plot(AllPlots()[[i+1]])
+                     
+      for (i in 1:length(AllPlots())){
+          plot(AllPlots()[[i]])
+          incProgress(1/length(AllPlots()), detail = paste(""))
       }
-      dev.off()
-      #dev.set(curr) 
+                     
+       dev.off()
+                     
+        }
+      )
     }
   )
   
