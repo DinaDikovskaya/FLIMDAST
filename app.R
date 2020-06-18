@@ -260,7 +260,18 @@ ui <- dashboardPage(
                                div(uiOutput("NoData"),align = "middle"))
               ),
               fluidRow( 
-                column(width = 4,uiOutput('DownloadAllPlots'))),
+                column(width = 4,uiOutput('DownloadAllPlots')),
+                column(width = 4,
+                       actionButton("UsePlot","Use these settings")),
+                column(width = 4,
+                       actionButton("RemovePlot","Remove last settings"))
+                ),
+              fluidRow(
+                br(),
+                column(width = 4),
+                column(width = 8,
+                uiOutput('cameras'))
+              ),
               br(),
               fluidRow( 
                 column(width = 5, 
@@ -299,6 +310,18 @@ ui <- dashboardPage(
                 ),
                 column(width = 7, 
                        box(width = 12,
+                           fluidRow(column(width = 2,
+                                           strong("photon number scale:")
+                           ),
+                           column(width = 10,
+                                  noUiSliderInput("xrange", NULL,
+                                                  min = 0, max = 2500,
+                                                  value = c(0,2500),
+                                                  step = 10,
+                                                  color = "#727272",
+                                                  orientation ="horizontal")
+                           )
+                           ),
                            div(shinySaveButton("downloadPlot", "Download plot" ,
                                                title = "Please save the plot:", filename = "overlay", filetype = list(picture=c("tiff")),
                                                buttonType = "default", class = "btn btn-sm"),align = "right"),
@@ -317,30 +340,7 @@ ui <- dashboardPage(
                                            br(),
                                            plotOutput("scatterplot", height = "300px" )
                                     )
-                           ),
-                           fluidRow(column(width = 2,
-                                           strong("photon number scale:")
-                           ),
-                           column(width = 10,
-                                  noUiSliderInput("xrange", NULL,
-                                                  min = 0, max = 2500,
-                                                  value = c(0,2500),
-                                                  step = 10,
-                                                  color = "#727272",
-                                                  orientation ="horizontal")
-                           )
                            )         
-                       ),
-                       fluidRow(
-                         column(width = 4,
-                                actionButton("UsePlot","Use these settings")),
-                         column(width = 3),
-                         column(width = 5,
-                                actionButton("RemovePlot","Remove last settings"))
-                       ),
-                       fluidRow(
-                         br(),
-                         uiOutput('cameras')
                        )
                 )) 
               
