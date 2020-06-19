@@ -1166,7 +1166,7 @@ server <- function(input, output, session) {
     
     #problem with table:if displayed (because of other measurments in the table), non-selected areas are the same as entire cells
     output$Results<-renderDT({
-      datatable(ComplRes(),
+      isolate(datatable(ComplRes(),
                 options=list(autoWidth = TRUE, 
                              scrollX = T,
                              columnDefs = list(list(className = 'dt-center',targets = c(1:ncol(ComplRes())))
@@ -1177,7 +1177,7 @@ server <- function(input, output, session) {
                                "}")
                 )
       ) %>%formatRound(CN,digits = 2, mark = "")%>%formatStyle(CNs, "column-width" = '18px', "overflow" = "auto","white-space" = "nowrap")
-    })
+    )})
     
     output$SaveRes<-renderUI({ 
       shinySaveButton("save_results", "Download Result Table" ,
@@ -1203,7 +1203,7 @@ server <- function(input, output, session) {
     CNs<-colnames(ComplRes()[(5+number_of_settings()):(2*number_of_settings()+4)])
     
     #table needs improvement, the same as above
-    output$Results1<-renderDT({
+    output$Results1<-renderDT({isolate( 
       datatable(ComplRes(),
                 options=list(autoWidth = TRUE, 
                              scrollX = T,
@@ -1215,7 +1215,7 @@ server <- function(input, output, session) {
                                "}")
                 )
       ) %>%formatRound(CN,digits = 2, mark = "")%>%formatStyle(CNs, "column-width" = '18px', "overflow" = "auto","white-space" = "nowrap")
-    })
+   ) })
     
     output$SaveRes1<-renderUI({ 
       shinySaveButton("save_results1", "Download Results" ,
