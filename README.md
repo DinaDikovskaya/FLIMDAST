@@ -36,16 +36,16 @@ _FLIMDAST_ is developed for R version 3.3.3; other versions were not tested
 It is recomended to run _FLIMDAST_ from RStudio. We use RStudio version 1.1.383; other versions were not tested
 
 The _FLIMDAST_ requires the following R packages to be installed before running:
- shiny
- shinyFiles
- DT
- plyr
- dplyr
- ggplot2
- abind
- colorpicker
- shinydashboard
- shinyWidgets
+ - shiny
+ - shinyFiles
+ - DT
+ - plyr
+ - dplyr
+ - ggplot2
+ - abind
+ - colorpicker
+ - shinydashboard
+ - shinyWidgets
 
 Data files: 
 FLIM measurements processed in SPCImage (Becker&Hickl) to quantify fluorescence lifetime in each pixel by fitting a single (preferred) or two- exponential decay model, exported as a pair of "...\_t1.asc" and "...\_photon.asc" files containing matrices of fluorescence lifetime and photon numbers in pixel positions, respectively. In case of two-exponential fitting, the mean fluorescence lifetime matrix needs to be generated from four export files, "...\_a1.asc","...\_t1.asc", "...\_a2.asc" and "...\_t2.asc" in ImageJ/FIJI, either manually or using the specifically designed tm_2cFLIM.ijm macro. 
