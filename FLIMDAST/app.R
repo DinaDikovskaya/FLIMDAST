@@ -1403,7 +1403,7 @@ server <- function(input, output, session) {
             }
         }
       }
-      TitleText2<-ifelse(2%in%c(Data2,Data3,Data4),paste0("\n with ",ComboPlotTable()[x,"Ref_TimePoint"]," (ref) ",Data2,Data3,Data3),"")
+      TitleText2<-ifelse(2%in%c(Data2,Data3,Data4),paste0("\n with ",ComboPlotTable()[x,"Ref_TimePoint"]," (ref) "),"")
       TitleText<-paste0(ComboPlotTable()[x,"Condition"]," cell ",ComboPlotTable()[x,"Cell"]," ",SecondTimePoint," ",TitleText2)
       
       re<-re + scale_colour_manual(values = c("black" = FirstColor, "blue" = SecondColor,"red" = ThirdColor,"yellow" = ForthColor ),
