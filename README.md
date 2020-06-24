@@ -52,7 +52,7 @@ Data files for each measurement:
  - Additional files with selected regions of interest.  Each selected region is provided as a separate file produced in ImageJ/FIJI from the photon number "...\_photons.asc" file, by saving it as a text image file after selecting an area of interest and setting all pixel values outside the selected area to zero.
 
 ## Installation:
-Download the content of this repository, by clicking "Clone or download" and choosing "Download Zip".
+Download the content of this repository, by clicking "Clone" button and choosing "Download Zip".
 Unzip downloaded folder, find the FLIMDAST folder inside it.
 Place the FLIMDAST folder into a working directory on your computer. 
 Open RStudio. Install required R packages that has not been installed previously. For this, in a Console of RStudio, type:
