@@ -1041,11 +1041,12 @@ server <- function(input, output, session) {
     # of all cells in the experiment into one dataframe 
     for (i in 1:nrow(valuesTogether$df)) {
       Measurement<-BuildingData(valuesTogether$df,i)
+      if (!is.null(Measurement)) { 
       Measurement$cond=valuesTogether$df[i,"Condition"]
       Measurement$cell=as.numeric(valuesTogether$df[i,"Cell"])
       Measurement$timepoint=valuesTogether$df[i,"Time_Point"]
       Measurement$ref=valuesTogether$df[i,"Reference"]
-      DT<-rbind(DT,Measurement)
+      DT<-rbind(DT,Measurement)}
       incProgress(1/nrow(valuesTogether$df), detail = paste(""))
     }
                  })
@@ -1077,8 +1078,10 @@ server <- function(input, output, session) {
           Xmaxloc<-as.numeric(unlist(valuesSelected$SettingsTable%>%filter(type=="Quant",Nr==Q)%>%select(Xmax)))
           
           data_blackloc<-reactive(subset(MainData(),cond==cnd&cell==cl&timepoint==RefTimePoint&MainData()[,Index1]>0))
-          MMBloc<-quantile(data_blackloc()$e, prob = c(0.005,0.995))
-          RefCurve<-Fitting(data_blackloc)
+          if (nrow(data_blackloc())>0) {
+             MMBloc<-quantile(data_blackloc()$e, prob = c(0.005,0.995))
+             RefCurve<-Fitting(data_blackloc)
+           }
           
           for (currTP in NonrefTimePoint) { 
             
@@ -1087,22 +1090,26 @@ server <- function(input, output, session) {
             transNote<-c("cell",valuesTogether$df[DataRow,"region_1_name"],valuesTogether$df[DataRow,"region_2_name"])
             
             data_greenloc<-reactive(subset(MainData(),cond==cnd&cell==cl&timepoint==currTP&MainData()[,Index2]>0))
-            
-            MMGloc<-quantile (data_greenloc()$e, prob = c(0.005,0.995))
-            commonMinloc<-max(MMBloc[[1]],MMGloc[[1]],Xminloc)
-            commonMaxloc<-min(MMBloc[[2]],MMGloc[[2]],Xmaxloc)
-            NonRefCurve<-Fitting(data_greenloc)
-            
-            ResCol<-sprintf("shift%s",Q)
-            
-            Results[DataRow, ResCol]<-shift_calc_fitted(RefCurve,NonRefCurve,commonMinloc,commonMaxloc)
-            N0<-ifelse((Xminloc==0)&(Xmaxloc==2500),"no limits",paste0(Xminloc,":",Xmaxloc))
-            N1<-paste0(transNote[Index1-1],"/",transNote[Index2-1],", ",N0)
-            Note<-paste0(N1,".  Change in fluorescence lifetime of ",trans[Index2-1]," relative to reference ",trans[Index1-1],
-                         ", limited between ",Xminloc," and ",Xmaxloc," photons per pixel" )
             NoteCol<-sprintf("shift%s_settings",Q)
-            Results[DataRow, NoteCol]<-Note
-          }
+            if (nrow(data_blackloc())>0 && nrow(data_greenloc())>0) {
+              MMGloc<-quantile (data_greenloc()$e, prob = c(0.005,0.995))
+              commonMinloc<-max(MMBloc[[1]],MMGloc[[1]],Xminloc)
+              commonMaxloc<-min(MMBloc[[2]],MMGloc[[2]],Xmaxloc)
+              NonRefCurve<-Fitting(data_greenloc)
+            
+              ResCol<-sprintf("shift%s",Q)
+            
+              Results[DataRow, ResCol]<-shift_calc_fitted(RefCurve,NonRefCurve,commonMinloc,commonMaxloc)
+              N0<-ifelse((Xminloc==0)&(Xmaxloc==2500),"no limits",paste0(Xminloc,":",Xmaxloc))
+              N1<-paste0(transNote[Index1-1],"/",transNote[Index2-1],", ",N0)
+              Note<-paste0(N1,".  Change in fluorescence lifetime of ",trans[Index2-1]," relative to reference ",trans[Index1-1],
+                         ", limited between ",Xminloc," and ",Xmaxloc," photons per pixel" )
+              Results[DataRow, NoteCol]<-Note
+               } else {
+              Results[DataRow, NoteCol]<-"problem with data"
+               }
+           }  
+          
         }
       }
     }
@@ -1321,6 +1328,9 @@ server <- function(input, output, session) {
      
                 data_bl<-MainDataSelectionR(x,ComboPlotTable,MainData)
                 data_gr<-MainDataSelectionNR(x,ComboPlotTable,MainData) 
+               
+                 if (nrow(data_bl)>0 && nrow(data_gr)>0) { 
+                  
                 area<-c("entire cell",ComboPlotTable()[x,"Ref_region_1_name"],ComboPlotTable()[x,"Ref_region_2_name"])
                 area1<-c("entire cell",ComboPlotTable()[x,"region_1_name"],ComboPlotTable()[x,"region_2_name"])
                 
@@ -1412,7 +1422,12 @@ server <- function(input, output, session) {
         theme(legend.margin = margin(-0.5,0,0,0, unit="cm"))+
         ggtitle(TitleText) +
         theme(plot.title = element_text(hjust = 0.5))
-      
+                } else {
+       re<- ggplot() +
+         theme_void() +
+         geom_text(aes(0,0,label='problem with data')) +
+         xlab(NULL)
+                }
       incProgress(1/PlotsCount, detail = paste(""))
       
     return(re)
@@ -1669,6 +1684,33 @@ server <- function(input, output, session) {
   #contructing a plot
   reNew<-reactive({
     
+    if (is.null(ref_flatData())) {
+      showModal(modalDialog(
+        "problem with reference data",
+        style = "font-size:20px",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    } 
+    if (is.null(flatData())) {
+      showModal(modalDialog(
+        "problem with non-reference data",
+        style = "font-size:20px",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    } 
+    if (is.null(flatData()) && is.null(ref_flatData())) {
+      showModal(modalDialog(
+        "problem with reference and non-reference data",
+        style = "font-size:20px",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    } 
+    req(!is.null(ref_flatData()))
+    req(!is.null(flatData()))
+    
     data<-bothdata()[[1]][bothdata()[[1]][[which(RefSel()==input$datasets)+1]]!=0,]
     col_s<-input$color_s
     col_s1<-input$color_s1
@@ -1843,6 +1885,34 @@ server <- function(input, output, session) {
   
   #constructing the plot with data and models, to show how the calculations are done
   Qplot<-reactive({
+    
+    if (is.null(ref_flatData())) {
+      showModal(modalDialog(
+        "problem with reference data",
+        style = "font-size:20px",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    } 
+    if (is.null(flatData())) {
+      showModal(modalDialog(
+        "problem with non-reference data",
+        style = "font-size:20px",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    } 
+    if (is.null(flatData()) && is.null(ref_flatData())) {
+      showModal(modalDialog(
+        "problem with reference and non-reference data",
+        style = "font-size:20px",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+    } 
+    req(!is.null(ref_flatData()))
+    req(!is.null(flatData()))
+    
     if (input$firstScatter==TRUE) {FirstCol ="black"} else {FirstCol = NA}
     if (input$secondScatter==TRUE) {SecondCol = "grey60"} else {SecondCol = NA}
     if (input$firstLoess==TRUE) {FirstLineCol = "blue"} else {FirstLineCol = NA}

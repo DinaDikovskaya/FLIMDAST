@@ -72,12 +72,15 @@ BuildingData<-function(MeasurementTable,RowNr){
   } else { r2<-e
          #r2[]<-0
         }
-  
+  #combine, if dataframes are the same size
+  if ((dim(e) == dim(t1)) && (dim(r2) == dim(t1)) && (dim(r2) == dim (t1))){ 
   ARR=abind(t1,e,r1,r2,along = 3)
   ARR[,,3:4]=ifelse(ARR[,,3:4]>0,1,0)
   flat=as.data.frame(as.matrix(ftable(ARR)))
   colnames(flat)=c("t1","e","r1","r2")
   flatData=subset(flat,t1!=0 & e!=0) 
+  } else
+  {flatData<-NULL}
   return(flatData)
 }
 
