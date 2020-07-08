@@ -20,7 +20,7 @@ _**FLIM DA**ta**S**et **T**ool_ to analyse fluorescence lifetime changes in a ti
  - Quantification of fluorescence intensity-independent change in the fluorescence lifetime of an object, relative to a reference measurement of the same object, using the following algorithm: 
   > 1) each dataset is ordered by photon numbers and fitted with a local polynomial regression (LOESS, span = 0.1) that smoothens the scatterplot of fluorescence lifetime into a single line. It is further converted into a sequence that has a single value of fluorescence lifetime for each sequential integer number of photons;
   > 2) the range of photon numbers between the lowest and the highest 99.5 percentile for each fluorescence lifetime distribution is calculated, and their overlap is set as the common intensity range for two distributions. It can be further manually narrowed by the user;
-  > 3) the change in fluorescence lifetime is calculated as a difference between the sums of all fluorescence lifetimes within the common intensity range for each fitted sequence, divided by the common intensity range.
+  > 3) the change in fluorescence lifetime is calculated as an average difference between fluorescence lifetimes of two fitted sequences for all values of photon number per pixel within the common intensity range.
 
 - Flexible user-designed experiment layout, allowing for multiple experimental conditions/groups, multiple cells/objects per condition and multiple time points. 
 
@@ -66,20 +66,7 @@ install.packages(“shinyWidgets”)<br>
 install.packages(“shinydashboard”)<br>
 install.packages(“colorpicker”)<br>
 install.packages(“abind”)<br>
-install.packages(“ggplot2”)
-
-## Examples:
-The folder "examples" contains files generated from three repeated FLIM measurements of the same live cell overexpressing proteins tagged with a superfolder GFP. Fluorescence lifetime of the  superfolder GFP was measured using a Scanning Confocal Microscope (Zeiss) equipped with a pulsed laser and a SimpleTau TCSPC module (Becker&Hickl). 
-
-Each measurement is represented by 5 files that have the same base name, FLIMdataNN_”(where NN is the measurement number), followed by an extension. 
-
-The files with extension "t1.asc" are the fluorescence lifetime files, containing matrices of fluorescence lifetime values in pixel positions, exported from SPCImage software (Becker&Hickl) after processing the original measurement files (not provided). The fluorescence lifetimes in these files were determined using a 1-component exponential decay fit. 
-
-The files with extension “photons_ez.txt” are the photon number files for the entire cell. These files were generated in FIJI from the files with extension  ”photons.asc” exported from SPCImage, which contain matrices of number of photons in pixel positions and depict cell morphology. The “photons_ez.txt” files have the same photon number values as the ”photons.asc” files in pixels within an area outlining the entire cell, and the value of zero in pixels outside that area. 
-
-Two additional files for each measurement, with extensions “photons_cz.txt” and “photons_nz.txt” are the photon number files for cytoplasmic and nuclear areas of the cell, respectively. They have been generated similarly to the “photons_ez.txt” files, except that the values of all pixels outside of cytoplasm (for “photons_cz.txt”) or nucleus (for “photons_nz.txt”) were set to zero. 
-
-To use example files, place the "examples" folder in any accessible location on your computer.
+install.packages(“ggplot2”)<br>
 
 ## Starting _FLIMDAST_:
 #### Method 1.
@@ -102,11 +89,11 @@ With both methods, the FLIMDAST will start in a separate local host window.  If 
 Internet connection is not required for running the downloaded FLIMDAST.  
 
 ## Running _FLIMDAST_:
-In the Experiment Layout tab, indicate the desired number of experimental conditions/groups, the number of additional regions of interest within cells, and the number of time points in the time course. If using the example datasets, choose 2 additional regions.
+In the Experiment Layout tab, indicate the desired number of experimental conditions/groups, the number of additional regions of interest within cells, and the number of time points in the time course.
 
-In the Single Object Time Course tab, select the condition, time point and the reference status of first measurement, and add locations of the files describing it by clicking the appropriate “Choose file” buttons and navigating to the requested files. If using the example datasets, select the first time point and "yes" in the Reference field, and select one of the files with extension “t1.asc” as the fluorescence lifetime file. Switch on the “autofill file”. This will automatically detect the other three files for the same measurement (e.g. the photon number files for the entire cell and for the two selected regions) within the folder with example files, following the pre-set name replacement rule.
+In the Single Object Time Course tab, select the condition, time point and the reference status of first measurement, and add locations of the files describing it by clicking the appropriate “Choose file” buttons and navigating to the requested files. If the files are in the same folder, switching on the “autofill file” will automatically detect the other files for the same measurement (e.g. the photon number files for the entire cell and, if exist, for selected regions) within that folder, following the user-defined name replacement rule.
 
-To record the selected file locations, click “Add”. This will assemble all provided information about that measurement as a new entry in a table. Repeat for other measurements (time points) of the same cell/object. If using the example dataset, select files with different measurement numbers for a reference and a non-reference measurement.
+To record the selected file locations, click “Add”. This will assemble all provided information about that measurement as a new entry in a table. Repeat for other measurements (time points) of the same cell/object. 
 
 Once all measurements of the same cell/object are added to the table, click “Save to main table”. This will send all entries in the table to the Main Table tab, empty the Single Object Time Course table and reset the cell ID number. If desired, repeat filling the Single Object Time Course table with data locations for more cells and sending them to the Main Table, until all files in the experiment had been located. 
 
@@ -119,5 +106,57 @@ In the Plot tab, select overlay settings (including the type of datasets, the nu
 In the Quantify tab, select settings to quantify changes in fluorescence lifetime, including the type of datasets and optional limits to the common intensity range, and click “Use these settings”. Note that the “data”/”model” switches change the plot display without changing quantifications. Repeat if additional  quantifications with different settings are desired. Click “Quantify all data” to apply the selected settings to the entire Main table dataset. This will produce a Result table with the values of fluorescence lifetime changes (“shift”) for each non-reference measurement, and the values of mean fluorescence lifetimes and mean photon numbers per pixel for each analysed dataset. Click “Download Results” to download it. 
 
 To stop _FLIMDAST_, close the local host window, or press the red "stop" button at the top of a Console pane in RStudio.
+
+## Using provided examples:
+The folder "examples" contains files generated from three repeated FLIM measurements of the same live cell overexpressing proteins tagged with a superfolder GFP. Fluorescence lifetime of the superfolder GFP was measured using a Scanning Confocal Microscope (Zeiss) equipped with a pulsed laser and a SimpleTau TCSPC module (Becker & Hickl).
+
+Each measurement is represented by 4 files that have the same base name, "*FLIMdataNN_*" (where *NN* is the measurement number), followed by an extension. The files with extension "*t1.asc*" contain fluorescence lifetime values in pixel positions, determined using a 1-component exponential decay fit. These files were exported from SPCImage software (Becker & Hickl).The files with extensions “*photons_ez.txt*”, “*photons_cz.txt*” and “*photons_nz.txt*” contain photon numbers in pixel positions. In these files, only pixels within areas that were manually selected (the entire cell area for “*photons_ez.txt*”, cytoplasm for “*photons_cz.txt*” or nucleus  for “*photons_nz.txt*”) have the photon number values, while pixels outside these areas are set to zero. These files were generated in FIJI by modifying SPCImage export files with photon numbers.
+
+To use example files, place the "examples" folder in any accessible location on your computer. 
+
+1.	Install and start FLIMDAST as instructed above.
+
+2.	Open Experiment Layout tab.
+3.	In Number of additional regions, select “two”. 
+4.	In Number of time points, type 3.
+5.	Open Single Object Time Course tab. 
+6.	Click on “Choose fluorescence lifetime file” button. Navigate to the folder with examples, and select *FLIMdata01_t1.asc* file.<br> <br>*The location of the file will be displayed under the “Choose fluorescence lifetime file” button.*
+7.	Switch “autofill files” on.<br> <br>*The location of the three respective photon number files for the entire cell, nucleus and cytoplasm will be displayed under the appropriate “Choose file” buttons.*
+8.	Click “Add”.<br> <br>*All file locations for the first measurement will be recorded in one row of the table, together with the description of the measurement. By default, it is described as a T-1 time point of cell 1, serving as a reference measurement.*
+9.	Click again on “Choose fluorescence lifetime file” button. Select *FLIMdata02_t1.asc* file.<br> <br>*All four locations will be updated with the files corresponding to the second measurement.*
+10.	Click “Add”.<br> <br>*All file locations for the second measurement will be added to the second row of the table, together with the measurement description. By default, it is described as a T-2 time point of cell 1, and is not a reference measurement.*
+11.	Repeat steps 9-10, selecting the *FLIMdata03_t1.asc* file in step 9.<br> <br>*All file locations for a third measurement will be added to the third row of the table, together with measurement description. By default, it is described as a T-3 time point of cell 1, and is not a reference measurement.*
+12.	Click “Save to main table”.<br> <br>*This copies the content of the table into an Experiment data location table in a Main Table tab. The table in the Single Object Time Course is cleared, and the cell ID number (at the top of the Single Object Time Course tab) increases to 2.*
+13.	Open Main Table tab.
+14.	Save the table, using “Download Main Table” button.
+<br> <br>*The saved file can now be directly uploaded into the Main Table tab in any future sessions. For this, click “Upload table from file” button in the Main Table tab. Using the browser bar, select the previously saved file with the description/location of the data. A separate table will show the content of the file. To replace the Experiment data location table with the uploaded file, click “Use as Main Table” button.*
+15.	Highlight first two rows of the table. Click “Use for settings”.
+16.	Open Plot tab.
+17.	Under “Select first dataset”, select “reference entire cell” (set up as default) for the first layer of scatterplot.<br><br>*This dataset corresponds to the reference measurement that was highlighted in step 15.*
+18. Under “select color”, choose preferred colour.<br><br>*The colour of the scatterplot will change accordingly.*
+19.	In the box that displays the scatterplot, adjust scales on the left and on the top of the plot window, to re-position the plot to your preference.
+20.	Click “Use these settings”.<br><br>*This records the current scatterplot layout settings for later use, as indicated by a camera icon. The settings can be removed by “Remove last settings” button.*
+21.	Under “Overlay with another dataset”, select “yes”.
+22.	In the “Select overlay dataset”, choose the data to be used for the overlay. <br><br>*To visualise changes in fluorescence lifetime of the non-reference measurement relative to the reference measurement, select “non-reference entire cell”.  This dataset corresponds to the non-reference measurement that was highlighted in step 15.*<br>
+*To colour-code nuclear or cytoplasmic pixels in reference measurement, select “reference nucl” or “reference cyt”.*
+23.	Under “select color”, choose preferred colour.
+24.	Optional: additional (up to 3) layers of the overlay can be added if desired. For this, select “yes” under “Overlay with another dataset” and select corresponding datasets and their colours. The data and colour for the previous layers can be altered retrospectively if desired.
+25.	When overlay is designed, click “Use these settings”. Additional camera icon will appear.
+26.	Repeat building the overlays as many times as desired, recording each of them by clicking “Use these settings”.
+27.	Once all settings are designed, click “Plot all data”. <br><br>*This will apply all scatterplot settings to all non-reference measurements in the Main Table, and generate the PDF file containing all plots. The file will be downloaded to a specified location.*
+28.	Open Quantify tab.
+29.	Under “Select reference dataset”, select “reference entire cell”.
+30.	Under “Select non-reference dataset”, select “non-reference entire cell”.
+31.	Switch “model” on next to the appropriate dataset to see the fitted fluorescence lifetime profile and the intensity range that is common for both reference and non-reference datasets.<br><br>*When “model” is switched on, the intensity-independent difference between fluorescence lifetimes of reference and non-reference measurements is displayed underneath the title of the plot.*
+32.	For increased visibility of the fitted profiles, scatterplots with the data could be made invisible by switching off “data”.
+33.	Optional: the common intensity range could be further limited using the handle bar underneath the plot.
+34. Record selected quantification settings using “Use these settings” button.<br><br>*Note that “data”/”model” switches do not affect quantifications.*
+35.	Repeat 29-34 as many times as desired.<br><br>*The settings can be removed with “Remove last settings” button.*
+36.	Click “Quantify all data”. <br><br>*This will generate a Result table that contains the intensity-independent change in fluorescence lifetime calculated for each non-reference measurement, compared to the reference dataset, in the column(s) named “shiftN”, where N is the settings number. The corresponding settings are described in the “shift_settingsN” columns. Additionally, the “mean_t1” and “mean_photons” columns with mean fluorescence lifetimes and mean photon number per pixels for each measured region will be displayed.*
+37.	Click “Download Results” button to download the Result table.
+
+
+
+
 
 
